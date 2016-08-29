@@ -1,7 +1,8 @@
 ---
 title: 'Exploration 0: Statistical Inference Review'
-author: "Jake Bowers"
-date: '`r format(Sys.Date(), "%B %d, %Y")`'
+author: "Jake Bowers, Dan Wisnosky, Luzmarina Garcia"
+date: "August 29, 2016"
+
 output:
   pdf_document:
     toc: no
@@ -16,6 +17,8 @@ graphics: yes
 mainfont: Minion Pro
 fontsize: 10pt
 ---
+
+
 
 ```{r opts, include=FALSE, cache=FALSE}
 require(knitr)
@@ -74,6 +77,11 @@ Did the London Subway and Bus bombings of July 2005 change the civic
 activity of people in the UK? The UK Home Office had a survey in the field
 in 2005. Because of confidentiality requirements she can only share a sample
 of 1000 of these people.
+```{r}
+
+```
+
+**Although the original survey may have been a random or representative sample, we have no guarantee that these 1000 observations are. Perhaps the 1000 observations in the dataset were ranked by some relevant covariate (e.g. geography). It could be assumed that this anonymity policy is a procedure to prevent accidental bias.  We will continue with this sample in the analysis.**
 
 She sends you some code that she says she found after, "they confiscated her
 machine". You ask, "Who confiscated whose machine?" And your friend replies,
@@ -116,6 +124,7 @@ load(url("http://jakebowers.org/Data/ho05.rda"))
 \end{verbatim}
 \end{small}
 
+**The dependent variable is an aggregated measure of how many hours the respondent has devoted to the community in the last four weeks that will be refered to as a measure of civic engagement. The independent variable is the whether the interview took place before or after the bombing.**
 
 ```{r}
 ## Aarrgh make data with no missing data on outcomes
@@ -123,7 +132,18 @@ wrkdat<-ho05[!is.na(ho05$hlphrs),]
 ```
 
 After you ponder this codebook, you ask, "Why did your analyst put 'aaargh'
-into the code?" Your friend says, "That is not important. When I asked my data
+into the code?" Your friend says, "That is not important...
+
+**The analyst just created a new copy of the dataset excluding the observations with missing values in the dependent variable.**
+
+```{r}
+summary(ho05$hlphrs)
+```
+
+**There are three missing values. The "Aarrgh" (an expression of frustration) is that some estimations in R do not work if the dependent variable has missing values. This step lets us know that there only three in the sample.**
+
+
+When I asked my data
 analyst to tell me the effect of the bombings on civic life in the UK, she
 gave me this next piece of code and output. How does this answer my question? I didn't ask for a
 coefficient!! Can you show me how to get this number in a way that is simpler?
@@ -134,6 +154,33 @@ effectlm<-lm(hlphrs~postbomb,data=wrkdat) ## the linear model
 coef(effectlm) ## coefficients
 ```
 
+**An OLS regression fits a straight line to the data. In this case our independent variable (whether the respondent was surveyed before or after the bombings) has only two possible values (0: before, 1: after). The regression line will go through the means of the values of the dependent variable for each of the independent variable's values. The intercept, then, is the mean of the "before" group (the one with value of zero). The coefficent, representing the slope of the line, shows how much that mean increases for the "after" group (since it has a value of one). Thus, the coefficient indicates how many more hours, on average, the people who were interviewed after the bombings devote to the community, compared to those interviewed before. Assuming this is a causal effect, the bombings increased civic engagement in an average of .78 hours per month, moving it from about 6.6 to approximately 7.4. Since there are only two groups, these same values can be found without doing a regression, but simply taking the difference of means of the two groups.**
+
+```{r}
+mean(wrkdat[wrkdat$postbomb==0,]$hlphrs)
+
+mean(wrkdat[wrkdat$postbomb==1,]$hlphrs)
+
+#Notice that the second mean is identical to the sum of intercept+coefficient
+sum(coef(effectlm))
+```
+
+**Why do we use averages? The short answer would be that the research community has agreed to use them over time, and nowadays is second nature.**
+
+**The long answer is that because our friend's report seeks to identify the effect of the London bombings in the patterns of civic engagement of people in the UK in general, in order to be sure that such an effect exists, and to estimate what the effect is, we ought to analyze more individuals at once. To understand this fully, we have to understand what Holland refers to as "The Funcamental Problem of Causal Inference (The Fundamental Problem)." The Fundamental Problem states that it is impossible for us to observe the effect of a treatment on a single individual. Holland uses a simple, yet informative example to explain the implication of the Fundamental Problem. Suppose we want to study how well fourth graders learn arithmetic after implementing a new program to teach it (which we'll call t) versus how well those fourth graders would have learned arithmetic by taking the old program (which we'll call c). We can measure the impact by conducting an exam after the completion of the program. To observe the impact of t relative to c, we would want to observe a specific fourth grader's exam performance having recieved both t and c. However, that specific fourth grader can only have one program, not both.**
+**Holland offers a solution to the Fundamental Problem in what he calls the "statistical solution". The statistical solution is to find the "average causal effect" of t. Doing so estimates the average treatment effect of a treatment over the populiation understudy. By using averages, "the statistical solution replaces the impossible-to-observe causal effect of t on a specific unit with the possible-to-estimate average causal effect of t over a population of units"(Holland, 947).**
+**Individuals react to events in different ways as a result of their individual characteristics. People will react differently to the bombings based on a wide varity of these characteristics. As social scientists, we need to limit the potential impact of these characteristics on the UK population's response to the bombing in order to best estimate the impact of the bombing itself. The best mean to do this is to observe a group large enough so all the possible charactersitics (covariates) that can explain these different reactions are accounted for. The ideal way to do this is through an experiment where we can assign individuals into one group that recieves the treatment and another that does not. Obviously, we do not want to experiment with bomb strikes, so we need to find other means of estimating our treatment.**
+
+**The second best scenario is to ensure that we collect information from a representative sample, that is, a group of people that looks as similar as possible to one that came from random assignment. Even in this controlled scenario, the bombings could have had different effects on virtually identical people, mostly because there are some covariates that simply escape our control. Using averages allows us to limit the impact of these covariates by lumping them with the covariates that are not identical in a manner that is as close to random as possible. Thus, we use averages as a way to summarize the treatment's effect on multiple individuals.**
+
+**Averages are the best way to make generalizations, but that does not imply that they are always good. How good an average is depends on the distribution of the dependent variable across our sample. This is the reason we want to include some additional statistics to confirm that the effect we estimate is close to what occurs in reality. Fortunately, when we estimate linear regressions in R, it automatically calculates some of these informative measures:**
+
+```{r}
+summary(effectlm)
+```
+
+** The standard error measures the variability of the estimates. We're estimating the slope of the line to be 0.78 with a standard error of 1.92. This means we cannot be confident that the slope is not zero, which would indicate no relationship between the variables. The p-value is the likelihood that we would see these (or more extreme) values given the null hypothesis (that there is no relationship). This is greater than 50%. The standard error and p-value lead us to believe that we should not trust this coefficient.**
+
 She continues, "One of my subordinate always brags about his statistics
 abilities at parties. So I asked him to help me interpret
 this number, he said, `Well, you can't trust this coefficient because your
@@ -142,11 +189,12 @@ asked my main analyst to explain. She didn't get a chance to explain but the
 agents recovered this from her computer:"
 
 
-```{r, eval = F}
+```{r}
 ## Outcome distribution
 summary(wrkdat$hlphrs)
 plot(density(wrkdat$hlphrs))
-rug(wrkdat$hlphrs)
+rug(wrkdat$hlphrs) #distribution concentration tick marks
+#Here I turned eval on in the code chunk so we can see the graph
 ```
 
 "Why would the analyst or those managing her as an asset want to know about
@@ -163,6 +211,17 @@ different analysts, I got two different hunks of code. I get the sense that
 there are two issues with the `normal/not-normal' question. Also, I am being
 driven crazy by people sending me emails with R code in them. Help!"
 
+**One of the many assumptions of OLS regression is multivariate normality, which requires the distribution of our variables to be similar to a normal distribution (Nau). A less strict and more intuitive version of this assumption is that we want our variables to have an evenly spread distribution so when we calculate the ordinary least squares, we make sure that the results are not biased by extreme observations. In the figure we can clearly see that most of the people devote very few hours to voluntarism, while a few spend a lot of time engaging with the community. Our concern is that these observations have too much leverage on the estimation.**
+
+**It is easy to think of an instance were the normal distribution of a variable doesn't hold, even our dichotomous independent variable, fails to adjust to it. More important than the normal distribution of the variables is the distribution of residuals or errors in the estimation. Although the consequences of each of these are relatively the same, the more skewed a distribution, the more the errors will deviate from a normal distribution.**
+
+```{r}
+plot(effectlm,which=2)
+```
+
+**As expected, our skewed distribution in the dependent variable produced errors or residuals that deviate systematically from the normal distribution on the right side. We could tolerate that it does fit the dotted line perfectly (indicating equivalence) as long as the deviation is not systematic. Clearly, that is not the case in the graph above.**
+
+
 "Here is the code from Analyst 1. What is the issue that he is responding to?
 Why more coefficients here? How are these coefficients telling us about
 effects?"
@@ -173,6 +232,23 @@ require(quantreg)
 effectRq<-rq(hlphrs~postbomb,data=wrkdat,tau=.5) # tau=.5 is middle quantile
 coef(effectRq) ## coefficients
 ```
+
+**Analyst 1 is trying to bypass the problem of a non-normal distribution of errors by using a different method of estimation. A quantile regression works similarly to a linear regression, but instead of calculating the conditional mean, it calculates the conditional distance to a particular percentile, in this case the 50th percentile which is the median. Given the distribution of our dependent variable, the mean becomes a poor characterization of it. Perhaps the median becomes a more representative alternative since median regression is more robust to outliers than least squares regression (Baum 2013). Again, because our independent variable has only two categories, we can divide the groups and calculate the median outside of the regression framework to ease the interpretation.**
+
+
+```{r}
+median(wrkdat[wrkdat$postbomb==0,]$hlphrs)
+
+median(wrkdat[wrkdat$postbomb==1,]$hlphrs)
+```
+
+**We see here that the median person devoted one hour to voluntarism before the bombings and two after. However, we may want to examinate this quantile regression a little bit further:**
+
+```{r}
+summary(effectRq)
+```
+
+**Similar to the standard error in OLS, by looking at the lower and upper bounds we cannot confirm that the effect of the bombings is different from zero for the median individual.**
 
 "Here is the code from Analyst 2: What is she doing? Why? What do her comments
 about a `CLT' mean?"
@@ -192,7 +268,14 @@ mean(results)
 
 ```
 
-```{r, fig.width=8, fig.height=4, out.width=".5\\textwidth", message=T, warning=T, eval = F}
+**Analyst 2 is taking a different approach to the problem of non-normal residuals by performing a permutation test (Rice and Lumley, 2008). The idea is that if the null hypothesis (in this case, that the bombing has no effect on civic involvement) is true, then the distribution of the independent variable (post bombing) against the dependent variable (hours helping) will be arbitrary. So, if we compare it to other arbitrary distributions of the independent variable, they should be hard to distinguish. The test works by repeatedly shuffling the independent variable and comparing the new distributions to the observed one.**
+
+**The first code chunk above creates a function that shuffles the values of the independent variable. It then estimates a linear regression against the actual values of the dependent variable, and returns the coefficient (representing, again, the difference of means between the now randomized pre- and post-bombing groups). In order to repeat the process multiple times, the second code chunk repicates this process 10,000 times and calculates the mean of all the coefficients stored. If the bombings had an actual effect, then this number should be far from our observed value. We see that it is not, but as our friend may already understand, a single value is never enough to provide a definitive answer.**
+
+**The following chunk produces two graphs that put our permutation test in perspective. The comment about "CLT" refers to the Central Limit Theorem. This states that given a sufficiently large sample, independent random variables that are identically distributed will approach a normal distribution. The 10,000 iterations here are more than large enough, so it should apply to this collection of coefficients. We expect that this normal distribution will have a mean of about zero, and we can use it to see whether we're "far enough" from zero in our observed data. To reject the null hypothesis, we would want to see our observed coefficient in the tails of the permutation distribution. The blue vertical line in the left graph represents the observed data. We can see that, while a bit right of center, it is not that far out.**
+
+
+```{r, fig.width=8, fig.height=4, out.width=".5\\textwidth", message=T, warning=T}
 par(mfrow=c(1,2),oma=rep(0,4),mgp=c(1.5,.5,0),pty="s")
 plot(density(results/sd(results)),xlab="Mean Diffs")
 curve(dnorm(x,sd=1,mean=0),from=-4,to=4,col="blue",add=TRUE) ## CLT ok.
@@ -203,12 +286,16 @@ qqnorm(results/sd(results))
 qqline(results/sd(results))
 ```
 
-```{r, eval = F}
-pnorm(obscoef,sd=1,mean=0,lower.tail=FALSE) # p-value
-2*(min( c( pnorm(obscoef,sd=1,mean=0),1-pnorm(obscoef,sd=1,mean=0) )))
+**To quantify this result, we can use the normal curve that the permutation distribution approximates and find a p-value.**
+
+```{r}
+pnorm(obscoef,sd=1,mean=0,lower.tail=FALSE)
+2*(min( c( pnorm(obscoef,sd=1,mean=0),1-pnorm(obscoef,sd=1,mean=0) ))) #p-value
 summary(effectlm)$coef[2,c(1,4)]
 
 ```
+
+**This shows that over 20% of the random distributions of the independent variable produce a difference of means that is more extreme than the one we observed. Our friend initially asked, did the London Subway and Bus bombings of July 2005 change the civic activity of people in the UK? As was the case with the OLS, we cannot reject the null hypothesis that there is no effect from the bombings on voluntarism. We now have some certainty that this is not only because we have a bad (heteroskedastic) distribution of errors, or, simply put, a skewed distribution in our dependent variable.**
 
 "Thanks so much for all of your help! Now I do see that the mention of
 `Normal' referred to two different problems. Now I have one last question:  "I
@@ -226,3 +313,55 @@ effectsBySubGroupsLm<-lm(hlphrs~london*postbomb,data=wrkdat)
 coef(effectsBySubGroupsLm)
 ```
 
+**This is analogous the first regression but we have two binary variables interacting with each other, so we have four possible categories. We can understand this better with the following table.**
+
+```{r}
+table(wrkdat$london,wrkdat$postbomb)
+```
+**In the estimation above, the intercept represents the average hours of voluntarism of those respondents surveyed before the bombings outside London, if we add the first coefficient to that number, we get the average number of hours for those respondents in London, and so on:**
+
+```{r}
+groups<-coef(effectsBySubGroupsLm)
+
+#Outside London before bombings
+groups[1]
+
+#Inside London before bombings
+groups[1]+groups[2]
+
+#Outside London after bombings
+groups[1]+groups[3]
+
+#Inside London after bombings
+groups[1]+groups[4]
+
+```
+
+**Or, we could do the same with simple means and put it in a table:**
+```{r}
+ob<-subset(wrkdat,london=="Not London" & postbomb==0)
+lb<-subset(wrkdat,london=="London" & postbomb==0)
+oa<-subset(wrkdat,london=="Not London" & postbomb==1)
+la<-subset(wrkdat,london=="London" & postbomb==1)
+
+before<-c(mean(ob$hlphrs),mean(lb$hlphrs))
+after<-c(mean(oa$hlphrs),mean(la$hlphrs))
+diff<-after-before
+
+tab<-cbind(before,after,diff)
+rownames(tab)<-c("Not London","London")
+tab
+```
+
+**Our friend asked how people in London acted compared to people in other parts of the UK.The table shows that here are increases in the means for civic participation both inside and outside of London. However, all the caveats made before about means not being enough by themselves apply here also.**
+
+
+**Bibliography**
+
+Baum, Christopher F. 2013. “Quantile Regression.” EC 823: Applied Econometrics. http://fmwww.bc.edu/ec-c/s2013/823/ec823.s2013.nn04.slides.pdf (August 29, 2016).
+
+Holland, Paul W. 1986. “Statistics and Causal Inference.” Journal of the American Statistical Association 81(396): 945–60.
+
+“Regression Diagnostics:  Testing the Assumptions of Linear Regression.” Testing the assumptions of linear regression. http://people.duke.edu/~rnau/testing.htm#assumptions (August 29, 2016).
+
+Rice, Ken, and Thomas Lumley. 2008. “Permutation Tests.” Permutation Tests. http://faculty.washington.edu/kenrice/sisg/sisg-08-06.pdf (August 29, 2016).
